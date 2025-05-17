@@ -1,0 +1,45 @@
+# Default configuration for the Nomad Idle Job Stopper Service
+# /usr/local/bin/nomad-idle-monitor.sh
+#
+# !!! IMPORTANT !!!
+# You MUST configure NOMAD_ENDPOINT and NOMAD_TOKEN below
+# before the service will function correctly.
+#
+# After editing this file, restart the service:
+# sudo systemctl restart nomad-idle-monitor.service
+
+# === Monitoring Settings ===
+
+# IDLE_TIMEOUT: Seconds of network inactivity before stopping the job.
+# Example: 900 for 15 minutes
+IDLE_TIMEOUT="900"
+
+# CHECK_INTERVAL: Seconds between container network stats checks.
+# Example: 60 for 1 minute
+CHECK_INTERVAL="60"
+
+# CONTAINER_FILTER: Docker 'ps --filter' argument. Leave empty to monitor all.
+# Examples:
+#   Monitor all containers: CONTAINER_FILTER=""
+#   Monitor only containers with a specific label: CONTAINER_FILTER="label=autostop=idle"
+#   Monitor containers matching a name prefix: CONTAINER_FILTER="name=^my-dev-env-"
+CONTAINER_FILTER=""
+
+# ACTIVITY_THRESHOLD: Minimum change in total bytes (Rx+Tx) since last check
+# to be considered "significant activity" that resets the idle timer.
+# Helps ignore background network noise. Default: 500 bytes.
+ACTIVITY_THRESHOLD="500"
+
+# === Nomad API Settings ===
+
+# NOMAD_ENDPOINT: Base URL of your Nomad API.
+# REQUIRED: Replace with your actual Nomad endpoint.
+# Example: NOMAD_ENDPOINT="http://127.0.0.1:4646"
+NOMAD_ENDPOINT=""
+
+# NOMAD_TOKEN: Nomad ACL token with 'job:stop' capability.
+# REQUIRED: Replace with your actual Nomad ACL token.
+# SECURITY WARNING: This token is stored in plain text. Ensure this file
+# has appropriate permissions (should be 600 or 640 by default).
+# Consider more secure methods (Vault, systemd credentials) for production.
+NOMAD_TOKEN=""

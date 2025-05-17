@@ -1,0 +1,45 @@
+[Unit]
+Description=Nomad Idle Job Stopper Service
+Documentation=https://github.com/YOUR_REPO/nomad-idle-monitor # Optional: Add URL if you have one
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+# Run as root to access docker socket and potentially /etc/default file
+User=root
+Group=root
+
+# Load configuration variables
+EnvironmentFile=/etc/default/nomad-idle-monitor
+
+# Specify the executable script
+# Use /bin/sh explicitly as the interpreter
+ExecStart=/bin/sh /usr/local/bin/nomad-idle-monitor.sh
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Standard output/error handling (journald is standard)
+StandardOutput=journal
+StandardError=journal
+
+# Use systemd's state directory management instead of /var/tmp/PID
+# The script checks for  environment variable
+# Permissions are handled by systemd (usually root:root 0700)
+RuntimeDirectory=nomad-idle-monitor
+RuntimeDirectoryMode=0700
+# StateDirectory=nomad-idle-monitor # Alternative if state needs to persist across restarts but not reboots
+
+# Optional hardening
+# NoNewPrivileges=true
+# ProtectSystem=strict
+# ProtectHome=true
+# PrivateTmp=true
+# ProtectKernelTunables=true
+# ProtectControlGroups=true
+# ProtectKernelModules=true
+
+[Install]
+WantedBy=multi-user.target

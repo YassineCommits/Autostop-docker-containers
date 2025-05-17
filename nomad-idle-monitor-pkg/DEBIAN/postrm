@@ -1,0 +1,46 @@
+#!/bin/sh
+# postrm script for nomad-idle-monitor
+set -e
+
+SERVICE_NAME=nomad-idle-monitor.service
+
+case "$1" in
+    purge)
+        echo "Purging configuration and state for $SERVICE_NAME..."
+        # Remove the service file link if not already removed by dpkg
+        systemctl disable "$SERVICE_NAME" || true
+        # Remove systemd runtime state directory if it exists
+        # These paths might vary slightly based on systemd version, but cover common locations
+        rm -rf "/run/systemd/transient/$SERVICE_NAME.service" \
+               "/run/systemd/generator/$SERVICE_NAME.service" \
+               "/run/systemd/generator.late/$SERVICE_NAME.service" \
+               "/var/lib/systemd/deb-systemd-helper-enabled/$SERVICE_NAME.service.dsh-also" \
+               "/run/nomad-idle-monitor" \
+               "/var/lib/nomad-idle-monitor" # Check both potential state dirs
+
+        # Remove legacy /var/tmp state directories if they exist (from older versions/manual script)
+        # Be careful with rm -rf on /var/tmp - use find for safety
+        # This finds directories named 'nomad_idle_monitor_state_*' directly under /var/tmp
+        # find /var/tmp -maxdepth 1 -type d -name 'nomad_idle_monitor_state_*' -exec rm -rf {} + 2>/dev/null || true
+    ;;
+
+    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Disable the service on removal
+        if [ "$1" = "remove" ]; then
+             echo "Disabling $SERVICE_NAME..."
+             systemctl disable "$SERVICE_NAME" || true # Ignore errors if already disabled
+        fi
+        # Reload systemd manager configuration to reflect removal/disabling
+         echo "Reloading systemd configuration..."
+         systemctl daemon-reload || true
+    ;;
+
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

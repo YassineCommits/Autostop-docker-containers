@@ -1,0 +1,66 @@
+#!/bin/sh
+# postinst script for nomad-idle-monitor
+set -e
+
+# Source debconf library if available (for future use maybe)
+#. /usr/share/debconf/confmodule
+
+SERVICE_NAME=nomad-idle-monitor.service
+DEFAULT_FILE=/etc/default/nomad-idle-monitor
+
+case "$1" in
+    configure)
+        # Ensure default config file permissions are secure (readable by root only initially)
+        # dpkg should handle this based on build permissions, but explicit check is fine.
+        if [ -e "$DEFAULT_FILE" ]; then
+             # Ensure root ownership and restrictive permissions for the token file
+             chown root:root "$DEFAULT_FILE"
+             chmod 0600 "$DEFAULT_FILE"
+        fi
+
+        # Reload systemd manager configuration
+        echo "Reloading systemd configuration..."
+        systemctl daemon-reload
+
+        # Enable the service to start on boot
+        echo "Enabling $SERVICE_NAME..."
+        systemctl enable "$SERVICE_NAME"
+
+        # Restart the service if it's already running (upgrade) or start it if not (initial install)
+        # Using systemctl preset check is more robust but complex. Try-restart handles common cases.
+        if systemctl is-active --quiet "$SERVICE_NAME"; then
+            echo "Restarting $SERVICE_NAME (already active)..."
+            systemctl try-restart "$SERVICE_NAME" || true # Don't fail postinst if restart fails initially
+        else
+             # Only start automatically on first install if configuration seems plausible
+             # We check if NOMAD_ENDPOINT and NOMAD_TOKEN are non-empty
+             ENDPOINT_SET=$(grep -E '^\s*NOMAD_ENDPOINT\s*=\s*".+"' "$DEFAULT_FILE" || true)
+             TOKEN_SET=$(grep -E '^\s*NOMAD_TOKEN\s*=\s*".+"' "$DEFAULT_FILE" || true)
+
+             if [ -n "$ENDPOINT_SET" ] && [ -n "$TOKEN_SET" ]; then
+                  echo "Starting $SERVICE_NAME..."
+                  systemctl start "$SERVICE_NAME" || true # Don't fail postinst if start fails
+             else
+                  echo "----------------------------------------------------------------------" >&2
+                  echo "WARNING: $SERVICE_NAME was not started automatically." >&2
+                  echo "Please edit $DEFAULT_FILE to set your NOMAD_ENDPOINT and NOMAD_TOKEN." >&2
+                  echo "Then, start the service manually:" >&2
+                  echo "  sudo systemctl start $SERVICE_NAME" >&2
+                  echo "----------------------------------------------------------------------" >&2
+             fi
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        # Handle failures, possibly try to restore previous state if needed (complex)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

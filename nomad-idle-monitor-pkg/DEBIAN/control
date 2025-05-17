@@ -1,0 +1,18 @@
+Package: nomad-idle-monitor
+Version: 1.0.0-1
+Architecture: all
+Maintainer: Your Name <your.email@example.com> # <-- !!! EDIT THIS LINE AFTER SAVING !!!
+Depends: docker.io | docker-ce, systemd, curl, bc, coreutils, libc-bin, debianutils
+Description: Stops idle Nomad jobs based on Docker container network activity.
+ This service monitors running Docker containers managed by HashiCorp Nomad.
+ If a container (optionally matching a filter) exhibits network inactivity
+ (based on docker stats Rx/Tx) for a configurable duration, the service
+ attempts to stop the corresponding Nomad job via the Nomad API.
+ .
+ This is useful for automatically shutting down development environments,
+ temporary services, or other jobs that should not run indefinitely when idle,
+ helping to conserve resources.
+ .
+ Configuration is done by editing /etc/default/nomad-idle-monitor and
+ restarting the service (sudo systemctl restart nomad-idle-monitor).
+ You MUST provide the Nomad API endpoint and token in the configuration file.
